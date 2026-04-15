@@ -102,7 +102,7 @@ for p in pathlib.Path(".").rglob("*"):
     txt2 = txt2.replace(f'CLI_NAME = "{OLD_CLI}"', f'CLI_NAME = "{NEW_CLI}"')
 
     # README/project title
-    txt2 = txt2.replace("# python-service-template", f"# {NEW_PROJ}")
+    txt2 = txt2.replace("# File Ingest Service", f"# {NEW_PROJ}")
 
     if txt2 != txt:
         p.write_text(txt2, encoding="utf-8")

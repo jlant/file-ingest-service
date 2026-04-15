@@ -1,7 +1,11 @@
 [app]
-name = "python-service-template"
+name = "file-ingest-service"
 log_level = "INFO"
 env = "dev"
 
 [service]
-run_seconds = 1
+run_seconds = 5
+poll_interval_seconds = 1.0
+data_dir = "data"
+allowed_suffixes = [".txt", ".csv"]
+min_size_bytes = 1

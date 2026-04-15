@@ -1,18 +1,18 @@
-# python-service-template
+# File Ingest Service
 
-A minimal, production-grade Python service template with a CLI interface.
+A directory watcher ingestion service that detects new files, validates them, moves them through an inbox/processed/error steps, and logs each step.
 
-- uv
-- src/ layout
-- ruff
-- pyright
-- pytest
-- nox
-- pre-commit
-- GitHub Actions
-- Typer for CLI
-- TOML as the default config format
-- YAML only for multi-step orchestration
+Essentially, a small polling service that:
+
+- watches an inbox/ directory
+- discovers new files
+- validates basic rules
+- processes each file
+- moves it to processed/ or error/
+- logs every step
+
+
+The service maps well to industrial/manufacturing processes where a lot of integration work starts with “something drops files somewhere, and we need to process them reliably.”
 
 ## Development workflow
 
@@ -30,35 +30,34 @@ uv run nox -s lint
 # Run tests
 uv run nox -s tests
 
-# Check template reads config file
-uv run pst read-config
+# Create a sample file
+uv run pst seed --filename sample.txt --content "hello world"
 
-# Check template runs service
+# Check that read-config command works
+uv run fis read-config
+
+# Check that run command works
 uv run pst run
 
 ```
 ## Quick start
 
 ```bash
-uv run pst hello
-uv run pst hello -n Jeremiah
-uv run pst read-config
+# Create a sample file
+uv run pst seed --filename sample.txt --content "hello world"
+
+# Check that read-config command works
+uv run fis read-config
+
+# Check that run command works
 uv run pst run
-PST_LOG_LEVEL=DEBUG PST_RUN_SECONDS=0 uv run pst run
 ```
 
-## Example - renaming the template
-After creating a new repo with this template, you can rename
-the template by running the `rename_template.sh` script:
-
-```bash
-./scripts/rename_template.sh my_service mst "My Service Template"
-uv lock
-uv sync --all-extras --dev
-pre-commit install
-uv run nox -s fmt
-uv run nox -s lint
-uv run nox -s tests
-uv run pst read-config
-uv run pst run
+After running, you should see:
+```
+data/
+  inbox/
+  processed/
+    sample.txt
+  error/
 ```

@@ -3,9 +3,9 @@ requires = ["hatchling>=1.24"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-service-template"
+name = "file-ingest-service"
 version = "0.1.0"
-description = "My standard Python service template."
+description = "A directory watcher ingestion service that detects new files, validates them, moves them through an inbox/processed/error steps, and logs each step."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -32,10 +32,10 @@ dev = [
 ]
 
 [project.scripts]
-pst = "python_service_template.cli:app"
+fis = "file_ingest_service.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/python_service_template"]
+packages = ["src/file_ingest_service"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

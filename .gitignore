@@ -19,3 +19,6 @@ htmlcov/
 
 ### Environment Variables ###
 .env
+
+### Data ###
+data/
