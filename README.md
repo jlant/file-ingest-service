@@ -31,26 +31,26 @@ uv run nox -s lint
 uv run nox -s tests
 
 # Create a sample file
-uv run pst seed --filename sample.txt --content "hello world"
+uv run fis seed --filename sample.txt --content "hello world"
 
 # Check that read-config command works
 uv run fis read-config
 
 # Check that run command works
-uv run pst run
+uv run fis run
 
 ```
 ## Quick start
 
 ```bash
 # Create a sample file
-uv run pst seed --filename sample.txt --content "hello world"
+uv run fis seed --filename sample.txt --content "hello world"
 
 # Check that read-config command works
 uv run fis read-config
 
 # Check that run command works
-uv run pst run
+uv run fis run
 ```
 
 After running, you should see:
