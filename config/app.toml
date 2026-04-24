@@ -1,5 +1,5 @@
 [app]
-name = "python-service-template"
+name = "file-ingest-service"
 log_level = "INFO"
 env = "dev"
 

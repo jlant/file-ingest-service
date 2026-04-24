@@ -3,7 +3,7 @@ requires = ["hatchling>=1.24"]
 build-backend = "hatchling.build"
 
 [project]
-name = "python-service-template"
+name = "file-ingest-service"
 version = "0.1.0"
 description = "My standard Python service template."
 readme = "README.md"
@@ -32,10 +32,10 @@ dev = [
 ]
 
 [project.scripts]
-pst = "python_service_template.cli:app"
+fis = "file_ingest_service.cli:app"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/python_service_template"]
+packages = ["src/file_ingest_service"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "scripts"]
@@ -45,7 +45,7 @@ addopts = "-q"
 [tool.coverage.run]
 source = ["src"]
 branch = true
-omit = ["src/python_service_template/__main__.py", "scripts/rename_template.py"]
+omit = ["src/file_ingest_service/__main__.py", "scripts/rename_template.py"]
 
 [tool.coverage.report]
 show_missing = true

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-DEFAULT_APP_NAME = "python-service-template"
+DEFAULT_APP_NAME = "file-ingest-service"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_ENV = "dev"
 DEFAULT_RUN_SECONDS = 1

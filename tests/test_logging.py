@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from python_service_template.logging import configure_logging
-from python_service_template.settings import Settings
+from file_ingest_service.logging import configure_logging
+from file_ingest_service.settings import Settings
 
 
 def test_configure_logging_sets_level(monkeypatch: pytest.MonkeyPatch) -> None:

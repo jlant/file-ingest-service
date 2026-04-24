@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from python_service_template.settings import DEFAULT_APP_NAME, ENV_PREFIX, load_settings
+from file_ingest_service.settings import DEFAULT_APP_NAME, ENV_PREFIX, load_settings
 
 
 def test_load_settings_from_toml_file(tmp_path: Path) -> None:

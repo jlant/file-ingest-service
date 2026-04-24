@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from python_service_template.pipeline import Step, load_pipeline, run_pipeline
+from file_ingest_service.pipeline import Step, load_pipeline, run_pipeline
 
 PIPELINE_YAML = """
 steps:

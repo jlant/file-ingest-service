@@ -1,6 +1,6 @@
-# Python Service Template
+# File Ingest Service
 
-A minimal, production-grade Python service with a CLI interface.
+A directory watcher ingestion service that detects new files, validates them, moves them through an inbox/processed/error steps, and logs each step.
 
 ## Tools
 
@@ -18,12 +18,12 @@ A minimal, production-grade Python service with a CLI interface.
 ## Quick start
 
 ```bash
-uv run pst --help
-uv run pst hello
-uv run pst hello -n Jeremiah
-uv run pst read-config
-uv run pst run
-APP_LOG_LEVEL=DEBUG APP_RUN_SECONDS=0 uv run pst run
+uv run fis --help
+uv run fis hello
+uv run fis hello -n Jeremiah
+uv run fis read-config
+uv run fis run
+APP_LOG_LEVEL=DEBUG APP_RUN_SECONDS=0 uv run fis run
 ```
 
 ## Development workflow
@@ -43,47 +43,11 @@ uv run nox -s lint
 uv run nox -s tests
 
 # Check template reads config file
-uv run pst read-config
+uv run fis read-config
 
 # Check template runs service
-uv run pst run
+uv run fis run
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for more details on the development workflow and
 guidelines for contributors.
-
-## Example - renaming the template
-
-After creating a new repo with this template, rename it by running the `rename_template.py`
-script:
-
-```bash
-# Preview first
-python scripts/rename_template.py my_service mst "My Service" --dry-run
-
-# Then apply
-python scripts/rename_template.py my_service mst "My Service"
-```
-
-Then finalize and verify everything is working:
-
-```bash
-uv lock
-uv sync --all-extras --dev
-pre-commit install
-
-# Format
-uv run nox -s fmt
-
-# Lint + type check
-uv run nox -s lint
-
-# Run tests
-uv run nox -s tests
-
-# Check template reads config file
-uv run <new_cli_name> read-config
-
-# Check template runs service
-uv run <new_cli_name> run
-```

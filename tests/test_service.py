@@ -1,7 +1,7 @@
 import pytest
 
-from python_service_template.service import Service
-from python_service_template.settings import Settings
+from file_ingest_service.service import Service
+from file_ingest_service.settings import Settings
 
 
 def test_service_start_run_stop() -> None:

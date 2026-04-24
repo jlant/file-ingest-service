@@ -2,7 +2,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from python_service_template.cli import CLI_NAME, app
+from file_ingest_service.cli import CLI_NAME, app
 
 runner = CliRunner()
 

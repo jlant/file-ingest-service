@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from python_service_template.config import resolve_settings
-from python_service_template.settings import DEFAULT_APP_NAME
+from file_ingest_service.config import resolve_settings
+from file_ingest_service.settings import DEFAULT_APP_NAME
 
 
 def test_resolve_settings_with_no_path_uses_default() -> None:
