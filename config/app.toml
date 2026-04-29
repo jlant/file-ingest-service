@@ -1,7 +1,11 @@
 [app]
 name = "file-ingest-service"
 log_level = "INFO"
-env = "dev"
+env = "DEV"
 
 [service]
-run_seconds = 1
+run_seconds = 5
+poll_interval_seconds = 1.0
+data_dir = "data"
+allowed_suffixes = [".csv", ".dat", ".txt"]
+min_size_bytes = 1
