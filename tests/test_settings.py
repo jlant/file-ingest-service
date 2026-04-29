@@ -173,7 +173,7 @@ def test_settings_raises_for_invalid_log_level() -> None:
 
 def test_settings_raises_for_invalid_env() -> None:
     with pytest.raises(ValueError, match="env"):
-        Settings(env="INVALID_LOG_LEVEL")
+        Settings(env="INVALID_ENV")
 
 
 def test_settings_raises_for_negative_run_seconds() -> None:
