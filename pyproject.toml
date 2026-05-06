@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "file-ingest-service"
 version = "0.1.0"
-description = "My standard Python service template."
+description = "A small file ingestion service that watches an inbox directory and routes files to processed or error directories"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
