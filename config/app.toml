@@ -2,10 +2,10 @@
 name = "file-ingest-service"
 log_level = "INFO"
 env = "DEV"
+# Relative to the working directory, so it resolves inside the install dir.
+log_file = "logs/file_ingest_service.log"
 
 [service]
-run_seconds = 5
-poll_interval_seconds = 1.0
 data_dir = "data"
 allowed_suffixes = [".csv", ".dat", ".txt"]
 min_size_bytes = 1

@@ -1,162 +1,121 @@
+"""Tests for the per-file ingest rule (ingest.handle_file) and its validation.
+
+These tests encode the routing invariant the design exists to protect:
+
+    every handled file LEAVES the inbox - to processed on success, to error on
+    failure - so a permanently bad file is quarantined once rather than retried
+    forever.
+
+handle_file depends on the FileRouter Protocol, so the routing outcomes are
+asserted against an in-memory fake (what it recorded) rather than by patching
+shutil. validate_file is pure logic and is tested directly against tmp_path.
+"""
+
+from __future__ import annotations
+
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
-from file_ingest_service.ingest import (
-    get_input_files,
-    handle_file,
-    validate_file,
-)
-from file_ingest_service.paths import build_service_paths
+from file_ingest_service.ingest import handle_file, validate_file
+from tests.conftest import FakeFileRouter
 
 
-# --- get_input_files ---
-def test_get_input_files_no_suffix_filter(tmp_path: Path) -> None:
-    """When allowed_suffixes is empty, all files are returned."""
-    (tmp_path / "a.txt").write_text("hello")
-    (tmp_path / "b.csv").write_text("world")
-
-    result = get_input_files(tmp_path, allowed_suffixes=())
-
-    assert len(result) == 2
-    assert {p.name for p in result} == {"a.txt", "b.csv"}
+def _file(tmp_path: Path, name: str, content: str = "hello") -> Path:
+    path = tmp_path / name
+    path.write_text(content, encoding="utf-8")
+    return path
 
 
-def test_get_input_files_with_suffix_filter(tmp_path: Path) -> None:
-    """When allowed_suffixes is provided, only matching files are returned."""
-    (tmp_path / "a.txt").write_text("hello")
-    (tmp_path / "b.csv").write_text("world")
-    (tmp_path / "c.txt").write_text("again")
+class TestValidateFile:
+    def test_raises_when_file_missing(self, tmp_path: Path) -> None:
+        with pytest.raises(FileNotFoundError, match="file does not exist"):
+            validate_file(tmp_path / "ghost.txt", min_size_bytes=1)
 
-    result = get_input_files(tmp_path, allowed_suffixes=(".txt",))
+    def test_raises_when_file_too_small(self, tmp_path: Path) -> None:
+        empty = _file(tmp_path, "tiny.txt", content="")
+        with pytest.raises(ValueError, match="file is too small"):
+            validate_file(empty, min_size_bytes=1)
 
-    assert len(result) == 2
-    assert all(p.suffix == ".txt" for p in result)
-
-
-def test_get_input_files_returns_sorted(tmp_path: Path) -> None:
-    """Results are returned in sorted order."""
-    for name in ("c.txt", "a.txt", "b.txt"):
-        (tmp_path / name).write_text("x")
-
-    result = get_input_files(tmp_path, allowed_suffixes=(".txt",))
-
-    assert [p.name for p in result] == ["a.txt", "b.txt", "c.txt"]
+    def test_passes_for_valid_file(self, tmp_path: Path) -> None:
+        valid = _file(tmp_path, "ok.txt", content="enough content")
+        validate_file(valid, min_size_bytes=1)  # must not raise
 
 
-def test_get_input_files_skips_directories(tmp_path: Path) -> None:
-    """Subdirectories are not included in results."""
-    (tmp_path / "file.txt").write_text("hello")
-    (tmp_path / "subdir").mkdir()
+class TestSuccessfulHandling:
+    def test_valid_file_is_routed_to_processed(self, tmp_path: Path) -> None:
+        path = _file(tmp_path, "sample.txt")
+        router = FakeFileRouter()
 
-    result = get_input_files(tmp_path, allowed_suffixes=())
+        result = handle_file(path, router=router, min_size_bytes=1)
 
-    assert all(p.is_file() for p in result)
-    assert len(result) == 1
+        assert result.success is True
+        assert result.reason == "processed"
+        assert router.processed == [path]
+        assert router.errored == []
 
+    def test_result_carries_source_and_destination(self, tmp_path: Path) -> None:
+        path = _file(tmp_path, "sample.txt")
+        router = FakeFileRouter()
 
-# --- validate_file ---
-def test_validate_file_raises_when_file_missing(tmp_path: Path) -> None:
-    """validate_file raises FileNotFoundError for a non-existent path."""
-    missing = tmp_path / "ghost.txt"
+        result = handle_file(path, router=router, min_size_bytes=1)
 
-    with pytest.raises(FileNotFoundError, match="file does not exist"):
-        validate_file(missing, min_size_bytes=1)
-
-
-def test_validate_file_raises_when_file_too_small(tmp_path: Path) -> None:
-    """validate_file raises ValueError when file is below the minimum size."""
-    small = tmp_path / "tiny.txt"
-    small.write_text("")
-
-    with pytest.raises(ValueError, match="file is too small"):
-        validate_file(small, min_size_bytes=1)
+        assert result.source == path
+        assert result.destination.name == "sample.txt"
 
 
-def test_validate_file_passes_for_valid_file(tmp_path: Path) -> None:
-    """validate_file does not raise for a file that exists and meets the size
-    threshold."""
-    valid = tmp_path / "ok.txt"
-    valid.write_text("enough_content")
+class TestQuarantineInvariant:
+    """A file that cannot be processed is routed to error, never left behind."""
 
-    validate_file(valid, min_size_bytes=1)  # should not raise
+    def test_invalid_file_is_routed_to_error(self, tmp_path: Path) -> None:
+        path = _file(tmp_path, "empty.txt", content="")
+        router = FakeFileRouter()
 
+        result = handle_file(path, router=router, min_size_bytes=1)
 
-# --- handle_file ---
-def test_handle_file_success(tmp_path: Path) -> None:
-    """A valid file processed and moved to the processed directory."""
-    paths = build_service_paths(tmp_path)
-    paths.ensure_directories()
+        assert result.success is False
+        assert "too small" in result.reason
+        assert router.errored == [path]
+        assert router.processed == []
 
-    source = paths.inbox / "sample.txt"
-    source.write_text("hello", encoding="utf-8")
+    def test_missing_file_is_routed_to_error(self, tmp_path: Path) -> None:
+        missing = tmp_path / "ghost.txt"
+        router = FakeFileRouter()
 
-    result = handle_file(path=source, paths=paths, min_size_bytes=1)
+        result = handle_file(missing, router=router, min_size_bytes=1)
 
-    assert result.success is True
-    assert result.destination == paths.processed / "sample.txt"
-    assert result.destination.exists()
-    assert not source.exists()
+        assert result.success is False
+        assert router.errored == [missing]
 
+    def test_processed_route_failure_falls_back_to_error(self, tmp_path: Path) -> None:
+        """The file validates and processes, but the processed route fails.
+        It must still leave the inbox - via the error route."""
+        path = _file(tmp_path, "sample.txt")
+        router = FakeFileRouter(fail_processed={"sample.txt"})
 
-def test_handle_file_failure_moves_to_error(tmp_path: Path) -> None:
-    """A file that fails validation is moved to the error directory."""
-    paths = build_service_paths(tmp_path)
-    paths.ensure_directories()
+        result = handle_file(path, router=router, min_size_bytes=1)
 
-    source = paths.inbox / "empty.txt"
-    source.write_text("", encoding="utf-8")
-
-    result = handle_file(path=source, paths=paths, min_size_bytes=1)
-
-    assert result.success is False
-    assert result.destination == paths.error / "empty.txt"
-    assert result.destination.exists()
-    assert not source.exists()
+        assert result.success is False
+        assert "processed-route failure" in result.reason
+        assert router.errored == [path]
 
 
-def test_handle_file_move_to_processed_fails_falls_back_to_error(tmp_path: Path) -> None:
-    """
-    If moving to the processed directory raises, the file is moved to the error
-    directory instead and the result reflects the failure.
-    """
-    paths = build_service_paths(tmp_path)
-    paths.ensure_directories()
+class TestTotalFailure:
+    def test_both_routes_failing_still_returns_a_result(self, tmp_path: Path) -> None:
+        """If even the error route fails, handle_file reports it rather than
+        raising - one unroutable file must not halt the batch."""
+        path = _file(tmp_path, "sample.txt")
+        router = FakeFileRouter(fail_processed={"sample.txt"}, fail_error={"sample.txt"})
 
-    source = paths.inbox / "sample.txt"
-    source.write_text("hello", encoding="utf-8")
+        result = handle_file(path, router=router, min_size_bytes=1)
 
-    original_move = __import__("shutil").move
+        assert result.success is False
+        assert result.source == path
+        assert result.destination == path  # falls back to the original path
+        assert "error-route failure" in result.reason
 
-    def move_side_effect(src: Path, dst: Path):
-        # Fail only when the destination is the processed directory.
-        if str(paths.processed) in str(dst):
-            raise OSError("disk full")
-        return original_move(src, dst)
-
-    with patch("file_ingest_service.ingest.shutil.move", side_effect=move_side_effect):
-        result = handle_file(path=source, paths=paths, min_size_bytes=1)
-
-    assert result.success is False
-    assert result.destination == paths.error / "sample.txt"
-    assert result.destination.exists()
-
-
-def test_handle_file_both_moves_fail_returns_result(tmp_path: Path) -> None:
-    """
-    If both the processed-dir and error-dir moves fail, handle_file still returns a
-    FileProcessResult rather than raising. The destination falls back to the original
-    source path.
-    """
-    paths = build_service_paths(tmp_path)
-    paths.ensure_directories()
-
-    source = paths.inbox / "sample.txt"
-    source.write_text("hello", encoding="utf-8")
-
-    with patch("file_ingest_service.ingest.shutil.move", side_effect=OSError("disk_full")):
-        result = handle_file(path=source, paths=paths, min_size_bytes=1)
-
-    assert result.success is False
-    assert result.source == source
+    def test_failure_returns_result_does_not_raise(self, tmp_path: Path) -> None:
+        path = _file(tmp_path, "empty.txt", content="")
+        router = FakeFileRouter(fail_error={"empty.txt"})
+        result = handle_file(path, router=router, min_size_bytes=1)  # must not raise
+        assert result.success is False

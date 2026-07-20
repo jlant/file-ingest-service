@@ -205,11 +205,6 @@ dependencies = [
     { name = "typer" },
 ]
 
-[package.optional-dependencies]
-yaml = [
-    { name = "pyyaml" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "nox" },
@@ -222,11 +217,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0.1" },
     { name = "rich", specifier = ">=13.7" },
     { name = "typer", specifier = ">=0.12" },
 ]
-provides-extras = ["yaml"]
 
 [package.metadata.requires-dev]
 dev = [

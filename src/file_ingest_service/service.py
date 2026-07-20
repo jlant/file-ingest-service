@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .ingest import get_input_files, handle_file
+from .ingest import handle_file
+from .local_files import LocalFileRouter, LocalFileSource
 from .paths import ServicePaths, build_service_paths
+from .protocols import FileRouter, FileSource
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -31,19 +32,38 @@ class Service:
         )
         self.started = True
 
-    def _run_cycle(self) -> None:
-        files = get_input_files(
-            self.paths.inbox,
+    # --- Boundary factories (overridden in tests to return fakes) ---------
+    # These are the seam. _run_cycle is pure orchestration and obtains its two
+    # boundaries through these methods, so a test subclasses Service and
+    # overrides them to return in-memory fakes - no mocking, no patching.
+
+    def _make_source(self) -> FileSource:
+        """Return the inbound boundary."""
+        return LocalFileSource(
+            inbox=self.paths.inbox,
             allowed_suffixes=self.settings.allowed_suffixes,
         )
 
-        if files:
-            logger.info("found %s file(s) to process", len(files))
+    def _make_router(self) -> FileRouter:
+        """Return the outbound boundary."""
+        return LocalFileRouter(self.paths)
+
+    def _run_cycle(self) -> None:
+        source = self._make_source()
+        router = self._make_router()
+
+        files = source.list_pending()
+
+        if not files:
+            logger.info("no files in inbox")
+            return
+
+        logger.info("found %s file(s) to process", len(files))
 
         for path in files:
             result = handle_file(
                 path=path,
-                paths=self.paths,
+                router=router,
                 min_size_bytes=self.settings.min_size_bytes,
             )
             logger.info(
@@ -58,22 +78,11 @@ class Service:
             msg = "service must be started before run()"
             raise RuntimeError(msg)
 
-        logger.info(
-            "running service app=%s env=%s run_seconds=%s",
-            self.settings.app_name,
-            self.settings.env,
-            self.settings.run_seconds,
-        )
+        logger.info("running service app=%s env=%s", self.settings.app_name, self.settings.env)
 
-        # Set the deadline
-        deadline = time.monotonic() + self.settings.run_seconds
-
-        # Run the service until deadline is exceeded and perform at least one run cycle
-        while True:
-            self._run_cycle()
-            if time.monotonic() >= deadline:
-                break
-            time.sleep(self.settings.poll_interval_seconds)
+        # One pass over the inbox, then return. If an external scheduler drives
+        # this service, the scheduler is the loop - the service must not loop.
+        self._run_cycle()
 
     def stop(self) -> None:
         if not self.started:
