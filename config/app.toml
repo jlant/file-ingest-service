@@ -1,11 +1,11 @@
 [app]
 name = "file-ingest-service"
 log_level = "INFO"
-env = "DEV"
+env = "PROD"
 # Relative to the working directory, so it resolves inside the install dir.
 log_file = "logs/file_ingest_service.log"
 
 [service]
-data_dir = "data"
+data_dir = "C:/Apps/file_ingest_service/data"
 allowed_suffixes = [".csv", ".dat", ".txt"]
 min_size_bytes = 1
