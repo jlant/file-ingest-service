@@ -6,6 +6,6 @@ env = "PROD"
 log_file = "logs/file_ingest_service.log"
 
 [service]
-data_dir = "C:/Apps/file_ingest_service/data"
+data_dir = "data"
 allowed_suffixes = [".csv", ".dat", ".txt"]
 min_size_bytes = 1
